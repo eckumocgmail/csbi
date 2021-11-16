@@ -104,26 +104,31 @@ namespace csbi_test_clients_dictionary.Services.Customers
            
             try
             {
-                
-                var results = _crmDbContext.Customers
-                    .Where(info=>  info.FirstName.ToLower().IndexOf(query.ToLower())!=-1
-                    || info.LastName.ToLower().IndexOf(query.ToLower()) != -1
-                    || info.SurName.ToLower().IndexOf(query.ToLower()) != -1
-                    
-                    );
-                 
-                
-                
+                var summary = new HashSet<CustomerInfo>();
+                query.ToLower().Split(" ").ToList().ForEach(word => {
+                    if (word.Trim().Length > 0)
+                    {
+                        var results = _crmDbContext.Customers
+                        .Where(info =>
+                            info.FirstName.ToLower().IndexOf(word.ToLower()) != -1
+                        || info.LastName.ToLower().IndexOf(word.ToLower()) != -1
+                        || info.SurName.ToLower().IndexOf(word.ToLower()) != -1
+
+                        );
+                        results.Skip((page - 1) * size).Take(size).ToList().ForEach((next)=> { summary.Add(next); });
+                        
+                    }
+                });
                 var res = new SearchResults<CustomerInfo>()
                 {
                     CompletedTime = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
                     StartedTime = started,
-                    TotalResults = results.Count(),
+                    TotalResults = summary.Count(),
                     PageNumber = page,
                     PageSize = size,
-                    TotalPages = results.Count()%size==0? ((int)(results.Count()/size)): 1+((int)((results.Count()-(results.Count()%size))/size)),
+                    TotalPages = summary.Count()%size==0? ((int)(summary.Count()/size)): 1+((int)((summary.Count()-(summary.Count()%size))/size)),
                     
-                    Result = results.Skip((page-1)*size).Take(size).ToArray(),
+                    Result = summary.ToArray(),
                     Status = 1
                 };
 
